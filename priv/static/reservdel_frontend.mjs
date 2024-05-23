@@ -201,6 +201,33 @@ function do_reverse(loop$remaining, loop$accumulator) {
 function reverse(xs) {
   return do_reverse(xs, toList([]));
 }
+function do_filter(loop$list, loop$fun, loop$acc) {
+  while (true) {
+    let list = loop$list;
+    let fun = loop$fun;
+    let acc = loop$acc;
+    if (list.hasLength(0)) {
+      return reverse(acc);
+    } else {
+      let x = list.head;
+      let xs = list.tail;
+      let new_acc = (() => {
+        let $ = fun(x);
+        if ($) {
+          return prepend(x, acc);
+        } else {
+          return acc;
+        }
+      })();
+      loop$list = xs;
+      loop$fun = fun;
+      loop$acc = new_acc;
+    }
+  }
+}
+function filter(list, predicate) {
+  return do_filter(list, predicate, toList([]));
+}
 function do_map(loop$list, loop$fun, loop$acc) {
   while (true) {
     let list = loop$list;
@@ -286,6 +313,14 @@ var MIN_ARRAY_NODE = BUCKET_SIZE / 4;
 function identity(x) {
   return x;
 }
+function to_string3(term) {
+  return term.toString();
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/int.mjs
+function to_string(x) {
+  return to_string3(x);
+}
 
 // build/dev/javascript/gleam_stdlib/gleam/bool.mjs
 function guard(requirement, consequence, alternative) {
@@ -334,13 +369,29 @@ var Attribute = class extends CustomType {
     this.as_property = as_property;
   }
 };
+var Event = class extends CustomType {
+  constructor(x0, x1) {
+    super();
+    this[0] = x0;
+    this[1] = x1;
+  }
+};
 
 // build/dev/javascript/lustre/lustre/attribute.mjs
-function attribute(name, value) {
-  return new Attribute(name, from(value), false);
+function attribute(name2, value) {
+  return new Attribute(name2, from(value), false);
 }
-function class$(name) {
-  return attribute("class", name);
+function on(name2, handler) {
+  return new Event("on" + name2, handler);
+}
+function class$(name2) {
+  return attribute("class", name2);
+}
+function type_(name2) {
+  return attribute("type", name2);
+}
+function name(name2) {
+  return attribute("name", name2);
 }
 
 // build/dev/javascript/lustre/lustre/element.mjs
@@ -468,15 +519,15 @@ function createElementNode({ prev, next, dispatch, stack }) {
   let style = null;
   let innerHTML = null;
   for (const attr of next.attrs) {
-    const name = attr[0];
+    const name2 = attr[0];
     const value = attr[1];
     if (attr.as_property) {
-      if (el2[name] !== value)
-        el2[name] = value;
+      if (el2[name2] !== value)
+        el2[name2] = value;
       if (canMorph)
-        prevAttributes.delete(name);
-    } else if (name.startsWith("on")) {
-      const eventName = name.slice(2);
+        prevAttributes.delete(name2);
+    } else if (name2.startsWith("on")) {
+      const eventName = name2.slice(2);
       const callback = dispatch(value);
       if (!handlersForEl.has(eventName)) {
         el2.addEventListener(eventName, lustreGenericEventHandler);
@@ -484,27 +535,27 @@ function createElementNode({ prev, next, dispatch, stack }) {
       handlersForEl.set(eventName, callback);
       if (canMorph)
         prevHandlers.delete(eventName);
-    } else if (name.startsWith("data-lustre-on-")) {
-      const eventName = name.slice(15);
+    } else if (name2.startsWith("data-lustre-on-")) {
+      const eventName = name2.slice(15);
       const callback = dispatch(lustreServerEventHandler);
       if (!handlersForEl.has(eventName)) {
         el2.addEventListener(eventName, lustreGenericEventHandler);
       }
       handlersForEl.set(eventName, callback);
-      el2.setAttribute(name, value);
-    } else if (name === "class") {
+      el2.setAttribute(name2, value);
+    } else if (name2 === "class") {
       className = className === null ? value : className + " " + value;
-    } else if (name === "style") {
+    } else if (name2 === "style") {
       style = style === null ? value : style + value;
-    } else if (name === "dangerous-unescaped-html") {
+    } else if (name2 === "dangerous-unescaped-html") {
       innerHTML = value;
     } else {
       if (typeof value === "string")
-        el2.setAttribute(name, value);
-      if (name === "value" || name === "selected")
-        el2[name] = value;
+        el2.setAttribute(name2, value);
+      if (name2 === "value" || name2 === "selected")
+        el2[name2] = value;
       if (canMorph)
-        prevAttributes.delete(name);
+        prevAttributes.delete(name2);
     }
   }
   if (className !== null) {
@@ -849,14 +900,29 @@ function start3(app, selector, flags) {
 function div(attrs, children) {
   return element("div", attrs, children);
 }
+function input(attrs) {
+  return element("input", attrs, toList([]));
+}
+
+// build/dev/javascript/lustre/lustre/event.mjs
+function on2(name2, handler) {
+  return on(name2, handler);
+}
+function on_click(msg) {
+  return on2("click", (_) => {
+    return new Ok(msg);
+  });
+}
 
 // build/dev/javascript/reservdel_frontend/state.mjs
 var Question = class extends CustomType {
-  constructor(text2, yes_options, is_terminal) {
+  constructor(id, text2, yes_options, is_terminal, visible) {
     super();
+    this.id = id;
     this.text = text2;
     this.yes_options = yes_options;
     this.is_terminal = is_terminal;
+    this.visible = visible;
   }
 };
 var Strategy = class extends CustomType {
@@ -873,38 +939,65 @@ var Yellow = class extends CustomType {
 };
 var Green = class extends CustomType {
 };
-function get_questions() {
+function init_state() {
   return toList([
     new Question(
+      1,
       "\xC4r reservdelen dyr?",
       new Strategy(new Green(), new Red(), new Yellow()),
-      false
+      false,
+      true
     ),
     new Question(
+      2,
       "Har reservdelen h\xF6g oms\xE4ttning?",
       new Strategy(new Yellow(), new Yellow(), new Red()),
+      false,
       false
     ),
     new Question(
+      3,
       "\xC4r till\xE5ten stillest\xE5ndstid kortare \xE4n leveranstider?",
       new Strategy(new Green(), new Red(), new Red()),
-      true
+      true,
+      false
     )
   ]);
 }
 
+// build/dev/javascript/reservdel_frontend/test.mjs
+function console_log_1(msg) {
+  console.log(msg);
+}
+
 // build/dev/javascript/reservdel_frontend/reservdel_frontend.mjs
-var Increment = class extends CustomType {
+var ToggleVisibility = class extends CustomType {
+  constructor(q_nr, yes) {
+    super();
+    this.q_nr = q_nr;
+    this.yes = yes;
+  }
 };
 function init2(_) {
-  return 0;
+  return init_state();
+}
+function toggle_visibility(model, msg) {
+  console_log_1("toggle_visibility, id: " + to_string(msg.q_nr));
+  let _pipe = model;
+  return map(
+    _pipe,
+    (question) => {
+      let $ = question.id === msg.q_nr;
+      if ($) {
+        return question.withFields({ visible: msg.yes === question.visible });
+      } else {
+        return question;
+      }
+    }
+  );
 }
 function update2(model, msg) {
-  if (msg instanceof Increment) {
-    return model + 1;
-  } else {
-    return model - 1;
-  }
+  return toggle_visibility(model, msg);
 }
 function grade_to_color_class(grade) {
   if (grade instanceof Red) {
@@ -920,7 +1013,8 @@ function grid(model) {
     "Fr\xE5ga",
     "Ha p\xE5 lager",
     "K\xF6pa vid behov",
-    "Leverant\xF6rsavtal"
+    "Leverant\xF6rsavtal",
+    "Visa"
   ]);
   let header_elements = (() => {
     let _pipe = headers;
@@ -935,9 +1029,15 @@ function grid(model) {
     );
   })();
   let row_elements = (() => {
-    let _pipe = get_questions();
-    return map(
+    let _pipe = model;
+    let _pipe$1 = filter(
       _pipe,
+      (question) => {
+        return question.visible;
+      }
+    );
+    return map(
+      _pipe$1,
       (question) => {
         let grade_cells = toList([
           grade_to_color_class(question.yes_options.hold_in_stock),
@@ -945,9 +1045,9 @@ function grid(model) {
           grade_to_color_class(question.yes_options.supplier_contract)
         ]);
         let cells = (() => {
-          let _pipe$1 = grade_cells;
+          let _pipe$2 = grade_cells;
           return map(
-            _pipe$1,
+            _pipe$2,
             (cell) => {
               return div(
                 toList([
@@ -958,21 +1058,24 @@ function grid(model) {
             }
           );
         })();
-        return append(
-          toList([
-            div(
-              toList([class$("p-2 border border-gray-200")]),
-              toList([text(question.text)])
-            )
-          ]),
-          cells
+        let question_cell = div(
+          toList([class$("p-2 border border-gray-200")]),
+          toList([text(question.text)])
         );
+        let radio_button = input(
+          toList([
+            type_("radio"),
+            name("visibility"),
+            on_click(new ToggleVisibility(question.id, true))
+          ])
+        );
+        return append(toList([question_cell, radio_button]), cells);
       }
     );
   })();
   let grid_elements = append(header_elements, flatten(row_elements));
   return div(
-    toList([class$("grid grid-cols-4 gap-4")]),
+    toList([class$("grid grid-cols-5 gap-4")]),
     grid_elements
   );
 }
@@ -986,7 +1089,7 @@ function main() {
     throw makeError(
       "assignment_no_match",
       "reservdel_frontend",
-      89,
+      105,
       "main",
       "Assignment pattern did not match",
       { value: $ }

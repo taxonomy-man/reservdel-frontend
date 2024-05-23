@@ -7,6 +7,9 @@ import lustre/element/html
 import lustre/event
 import state.{type Grade, type Question}
 
+@external(javascript, "./test.mjs", "console_log_1")
+pub fn console_log(str: String) -> a
+
 pub type Model =
   List(Question)
 
@@ -23,10 +26,11 @@ pub fn update(model: Model, msg) -> Model {
 }
 
 pub fn toggle_visibility(model: Model, msg: Msg) -> Model {
+  console_log("toggle_visibility, id: " <> int.to_string(msg.q_nr))
   model
   |> list.map(fn(question) {
     case question.id == msg.q_nr {
-      True -> state.Question(..question, visible: msg.yes != question.visible)
+      True -> state.Question(..question, visible: msg.yes == question.visible)
       False -> question
     }
   })
@@ -47,6 +51,7 @@ pub fn grid(model: Model) -> element.Element(Msg) {
 
   let row_elements =
     model
+    |> list.filter(fn(question) { question.visible })
     |> list.map(fn(question) {
       let grade_cells = [
         grade_to_color_class(question.yes_options.hold_in_stock),
@@ -72,8 +77,7 @@ pub fn grid(model: Model) -> element.Element(Msg) {
         html.input([
           attribute.type_("radio"),
           attribute.name("visibility"),
-          attribute.value("yes"),
-          //event.on_click(Msg.ToggleVisibility(question.id)),
+          event.on_click(ToggleVisibility(question.id, yes: True)),
         ])
 
       list.append([question_cell, radio_button], cells)
