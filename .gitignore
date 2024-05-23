@@ -2,3 +2,5 @@
 *.ez
 /build
 erl_crash.dump
+priv/static/reservdel_frontend.css
+priv/static/reservdel_frontend.mjs
