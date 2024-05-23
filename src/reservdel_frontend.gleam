@@ -1,14 +1,11 @@
-import gleam/dynamic
 import gleam/int
-import gleam/io
 import gleam/list
 import lustre
 import lustre/attribute
-import lustre/effect
 import lustre/element
 import lustre/element/html
 import lustre/event
-import lustre_http
+import state.{type Grade, type Question}
 
 pub type Model =
   Int
@@ -30,43 +27,61 @@ pub fn update(model: Model, msg: Msg) -> Model {
 }
 
 pub fn grid(model: Model) -> element.Element(Msg) {
-  todo
+  let headers = [
+    "Fråga", "Ha på lager", "Köpa vid behov", "Leverantörsavtal",
+  ]
+
+  let header_elements =
+    headers
+    |> list.map(fn(header) {
+      html.div([attribute.class("p-2 border border-gray-200")], [
+        element.text(header),
+      ])
+    })
+
+  let row_elements =
+    state.get_questions()
+    |> list.map(fn(question) {
+      let grade_cells = [
+        grade_to_color_class(question.yes_options.hold_in_stock),
+        grade_to_color_class(question.yes_options.buy_on_demand),
+        grade_to_color_class(question.yes_options.supplier_contract),
+      ]
+
+      let cells =
+        grade_cells
+        |> list.map(fn(cell) {
+          html.div(
+            [attribute.class("p-2 border border-gray-200 h-10 " <> cell)],
+            [],
+          )
+        })
+
+      list.append(
+        [
+          html.div([attribute.class("p-2 border border-gray-200")], [
+            element.text(question.text),
+          ]),
+        ],
+        cells,
+      )
+    })
+
+  let grid_elements = list.append(header_elements, list.flatten(row_elements))
+
+  html.div([attribute.class("grid grid-cols-4 gap-4")], grid_elements)
+}
+
+fn grade_to_color_class(grade: Grade) -> String {
+  case grade {
+    state.Red -> "bg-red-500"
+    state.Yellow -> "bg-yellow-500"
+    state.Green -> "bg-green-500"
+  }
 }
 
 pub fn view(model: Model) -> element.Element(Msg) {
-  let count = int.to_string(model)
-  html.div([attribute.class("bg-purple-500 text-white p-4 rounded-lg")], [
-    element.text(count),
-  ])
-
-  html.div([attribute.class("bg-pink-500 text-white p-4 rounded-lg")], [
-    html.h1([attribute.class("text-4xl font-bold")], [
-      element.text("Counter" <> count),
-    ]),
-    html.div([], [element.text("This is a simple counter app")]),
-    html.div([], [
-      html.div([], [
-        html.button(
-          [
-            event.on_click(Increment),
-            attribute.class("bg-blue-500 text-white p-2 rounded-lg"),
-          ],
-          [element.text("+")],
-        ),
-      ]),
-    ]),
-    html.div([], [
-      html.div([], [
-        html.button(
-          [
-            event.on_click(Decrement),
-            attribute.class("bg-red-500 text-white p-2 rounded-lg"),
-          ],
-          [element.text("-")],
-        ),
-      ]),
-    ]),
-  ])
+  html.div([], [grid(model)])
 }
 
 pub fn main() {

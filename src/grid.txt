@@ -1,6 +1,16 @@
-import questions
+import gleam/list
+import lustre/element
+import state.{type Grade, type Question}
 
-pub fn grid_view(questions: List(Question)) -> element.Element(Msg) {
+pub fn grade_to_color_string(grade: Grade) -> String {
+  case grade {
+    state.Red -> "Red"
+    state.Yellow -> "Yellow"
+    state.Green -> "Green"
+  }
+}
+
+pub fn grid_view(questions: List(Question)) -> element.Element(msg) {
   let headers = [
     "Question", "Hold in Stock", "Buy on Demand", "Supplier Contract",
   ]
@@ -34,12 +44,4 @@ pub fn grid_view(questions: List(Question)) -> element.Element(Msg) {
   let grid_elements = list.append(header_elements, list.flatten(row_elements))
 
   html.div([attribute.class("grid grid-cols-4 gap-4")], grid_elements)
-}
-
-fn grade_to_color_string(grade: Grade) -> String {
-  case grade {
-    Red -> "red"
-    Yellow -> "yellow"
-    Green -> "green"
-  }
 }
