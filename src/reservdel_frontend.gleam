@@ -8,27 +8,33 @@ import lustre/event
 import state.{type Grade, type Question}
 
 pub type Model =
-  Int
+  List(Question)
 
 fn init(_flags) -> Model {
-  0
+  state.init_state()
 }
 
 pub type Msg {
-  Increment
-  Decrement
+  ToggleVisibility(q_nr: Int, yes: Bool)
 }
 
-pub fn update(model: Model, msg: Msg) -> Model {
-  case msg {
-    Increment -> model + 1
-    Decrement -> model - 1
-  }
+pub fn update(model: Model, msg) -> Model {
+  toggle_visibility(model, msg)
+}
+
+pub fn toggle_visibility(model: Model, msg: Msg) -> Model {
+  model
+  |> list.map(fn(question) {
+    case question.id == msg.q_nr {
+      True -> state.Question(..question, visible: msg.yes != question.visible)
+      False -> question
+    }
+  })
 }
 
 pub fn grid(model: Model) -> element.Element(Msg) {
   let headers = [
-    "Fråga", "Ha på lager", "Köpa vid behov", "Leverantörsavtal",
+    "Fråga", "Ha på lager", "Köpa vid behov", "Leverantörsavtal", "Visa",
   ]
 
   let header_elements =
@@ -40,7 +46,7 @@ pub fn grid(model: Model) -> element.Element(Msg) {
     })
 
   let row_elements =
-    state.get_questions()
+    model
     |> list.map(fn(question) {
       let grade_cells = [
         grade_to_color_class(question.yes_options.hold_in_stock),
@@ -57,19 +63,25 @@ pub fn grid(model: Model) -> element.Element(Msg) {
           )
         })
 
-      list.append(
-        [
-          html.div([attribute.class("p-2 border border-gray-200")], [
-            element.text(question.text),
-          ]),
-        ],
-        cells,
-      )
+      let question_cell =
+        html.div([attribute.class("p-2 border border-gray-200")], [
+          element.text(question.text),
+        ])
+
+      let radio_button =
+        html.input([
+          attribute.type_("radio"),
+          attribute.name("visibility"),
+          attribute.value("yes"),
+          //event.on_click(Msg.ToggleVisibility(question.id)),
+        ])
+
+      list.append([question_cell, radio_button], cells)
     })
 
   let grid_elements = list.append(header_elements, list.flatten(row_elements))
 
-  html.div([attribute.class("grid grid-cols-4 gap-4")], grid_elements)
+  html.div([attribute.class("grid grid-cols-5 gap-4")], grid_elements)
 }
 
 fn grade_to_color_class(grade: Grade) -> String {

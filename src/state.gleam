@@ -1,5 +1,11 @@
 pub type Question {
-  Question(text: String, yes_options: Strategy, is_terminal: Bool)
+  Question(
+    id: Int,
+    text: String,
+    yes_options: Strategy,
+    is_terminal: Bool,
+    visible: Bool,
+  )
 }
 
 pub type Strategy {
@@ -12,14 +18,17 @@ pub type Grade {
   Green
 }
 
-pub fn get_questions() {
+pub fn init_state() {
   [
     Question(
+      1,
       "Är reservdelen dyr?",
       Strategy(Green, Red, Yellow),
       is_terminal: False,
+      visible: True,
     ),
     Question(
+      2,
       "Har reservdelen hög omsättning?",
       Strategy(
         hold_in_stock: Yellow,
@@ -27,11 +36,14 @@ pub fn get_questions() {
         supplier_contract: Red,
       ),
       is_terminal: False,
+      visible: False,
     ),
     Question(
+      3,
       "Är tillåten stilleståndstid kortare än leveranstider?",
       Strategy(Green, Red, Red),
       is_terminal: True,
+      visible: False,
     ),
   ]
 }
