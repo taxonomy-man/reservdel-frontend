@@ -30,7 +30,7 @@ pub fn toggle_visibility(model: Model, msg: Msg) -> Model {
   model
   |> list.map(fn(question) {
     case question.id == msg.q_nr {
-      True -> state.Question(..question, visible: msg.yes == question.visible)
+      True -> state.Question(..question, visible: !question.visible)
       False -> question
     }
   })
@@ -38,7 +38,7 @@ pub fn toggle_visibility(model: Model, msg: Msg) -> Model {
 
 pub fn grid(model: Model) -> element.Element(Msg) {
   let headers = [
-    "Fråga", "Ha på lager", "Köpa vid behov", "Leverantörsavtal", "Visa",
+    "Fråga", "Visa", "Ha på lager", "Köpa vid behov", "Leverantörsavtal",
   ]
 
   let header_elements =
