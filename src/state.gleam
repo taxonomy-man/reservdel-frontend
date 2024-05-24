@@ -2,7 +2,7 @@ pub type Question {
   Question(
     id: Int,
     text: String,
-    yes_options: Strategy,
+    strategy: Strategy,
     is_terminal: Bool,
     visible: Bool,
   )
@@ -18,7 +18,7 @@ pub type Grade {
   Green
 }
 
-pub fn init_state() {
+pub fn get_questions() {
   [
     Question(
       1,
@@ -36,7 +36,7 @@ pub fn init_state() {
         supplier_contract: Red,
       ),
       is_terminal: False,
-      visible: False,
+      visible: True,
     ),
     Question(
       3,
