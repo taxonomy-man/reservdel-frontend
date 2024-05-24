@@ -12,6 +12,9 @@ import state.{type Grade, type Question}
 @external(javascript, "./test.mjs", "console_log_1")
 pub fn console_log(str: String) -> Nil
 
+@external(javascript, "./test.mjs", "animateElement")
+pub fn animate_element(id: String) -> Nil
+
 pub type Model =
   List(Question)
 
@@ -79,31 +82,45 @@ pub fn grid(model: Model) -> element.Element(Msg) {
         grade_cells
         |> list.map(fn(cell) {
           html.div(
-            [attribute.class("p-2 border border-gray-200 h-10 " <> cell)],
+            [attribute.class("p-2 border border-gray-200 h-10 w-full " <> cell)],
             [],
           )
         })
-
+      let _ =
+        animate_element(
+          question.id
+          |> int.to_string,
+        )
       let question_row =
-        html.div([attribute.class("flex items-center space-x-4")], [
-          html.div([attribute.class("p-2 border border-gray-200 flex-1")], [
+        html.div([attribute.class("flex items-center space-x-4 mx-auto")], [
+          // Removed 'flex-1' class
+          html.div([attribute.class("p-2 border border-gray-200 mr-2")], [
+            // Added 'mr-4' class for margin
             element.text(question.text),
           ]),
-          html.input([
-            attribute.type_("button"),
-            attribute.name("visibility"),
-            attribute.class("p-2 border border-gray-200 text-white rounded"),
-            event.on_click(ToggleVisibility(question.id, yes: True)),
-          ]),
+          html.button(
+            [
+              attribute.name("visibility"),
+              attribute.class(
+                "bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded",
+              ),
+              event.on_click(ToggleVisibility(question.id, yes: True)),
+            ],
+            [
+              element.text("Nästa fråga"),
+              // Replace with your button text
+            ],
+          ),
         ])
 
-      html.div([attribute.class("space-y-2")], [
+      html.div([attribute.class("space-y-2 mx-auto")], [
+        // Added 'mx-auto' class for centering
         question_row,
         html.div([attribute.class("flex space-x-4")], strategy_row),
       ])
     })
 
-  html.div([attribute.class("space-y-4")], question_elements)
+  html.div([attribute.class("space-y-2")], question_elements)
 }
 
 fn grade_to_color_class(grade: Grade) -> String {

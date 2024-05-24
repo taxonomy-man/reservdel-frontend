@@ -179,6 +179,22 @@ function makeError(variant, module, line, fn, message, extra) {
   return error;
 }
 
+// build/dev/javascript/gleam_stdlib/gleam/bool.mjs
+function to_string(bool3) {
+  if (!bool3) {
+    return "False";
+  } else {
+    return "True";
+  }
+}
+function guard(requirement, consequence, alternative) {
+  if (requirement) {
+    return consequence;
+  } else {
+    return alternative();
+  }
+}
+
 // build/dev/javascript/gleam_stdlib/gleam/option.mjs
 var None = class extends CustomType {
 };
@@ -247,54 +263,6 @@ function do_map(loop$list, loop$fun, loop$acc) {
 function map(list, fun) {
   return do_map(list, fun, toList([]));
 }
-function do_append(loop$first, loop$second) {
-  while (true) {
-    let first = loop$first;
-    let second = loop$second;
-    if (first.hasLength(0)) {
-      return second;
-    } else {
-      let item = first.head;
-      let rest$1 = first.tail;
-      loop$first = rest$1;
-      loop$second = prepend(item, second);
-    }
-  }
-}
-function append(first, second) {
-  return do_append(reverse(first), second);
-}
-function reverse_and_prepend(loop$prefix, loop$suffix) {
-  while (true) {
-    let prefix = loop$prefix;
-    let suffix = loop$suffix;
-    if (prefix.hasLength(0)) {
-      return suffix;
-    } else {
-      let first$1 = prefix.head;
-      let rest$1 = prefix.tail;
-      loop$prefix = rest$1;
-      loop$suffix = prepend(first$1, suffix);
-    }
-  }
-}
-function do_concat(loop$lists, loop$acc) {
-  while (true) {
-    let lists = loop$lists;
-    let acc = loop$acc;
-    if (lists.hasLength(0)) {
-      return reverse(acc);
-    } else {
-      let list = lists.head;
-      let further_lists = lists.tail;
-      loop$lists = further_lists;
-      loop$acc = reverse_and_prepend(list, acc);
-    }
-  }
-}
-function flatten(lists) {
-  return do_concat(lists, toList([]));
-}
 
 // build/dev/javascript/gleam_stdlib/gleam/dynamic.mjs
 function from(a) {
@@ -313,22 +281,28 @@ var MIN_ARRAY_NODE = BUCKET_SIZE / 4;
 function identity(x) {
   return x;
 }
-function to_string3(term) {
+function to_string4(term) {
   return term.toString();
+}
+function join(xs, separator) {
+  const iterator = xs[Symbol.iterator]();
+  let result = iterator.next().value || "";
+  let current = iterator.next();
+  while (!current.done) {
+    result = result + separator + current.value;
+    current = iterator.next();
+  }
+  return result;
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/int.mjs
-function to_string(x) {
-  return to_string3(x);
+function to_string2(x) {
+  return to_string4(x);
 }
 
-// build/dev/javascript/gleam_stdlib/gleam/bool.mjs
-function guard(requirement, consequence, alternative) {
-  if (requirement) {
-    return consequence;
-  } else {
-    return alternative();
-  }
+// build/dev/javascript/gleam_stdlib/gleam/string.mjs
+function join2(strings, separator) {
+  return join(strings, separator);
 }
 
 // build/dev/javascript/lustre/lustre/effect.mjs
@@ -386,9 +360,6 @@ function on(name2, handler) {
 }
 function class$(name2) {
   return attribute("class", name2);
-}
-function type_(name2) {
-  return attribute("type", name2);
 }
 function name(name2) {
   return attribute("name", name2);
@@ -900,8 +871,8 @@ function start3(app, selector, flags) {
 function div(attrs, children) {
   return element("div", attrs, children);
 }
-function input(attrs) {
-  return element("input", attrs, toList([]));
+function button(attrs, children) {
+  return element("button", attrs, children);
 }
 
 // build/dev/javascript/lustre/lustre/event.mjs
@@ -916,11 +887,11 @@ function on_click(msg) {
 
 // build/dev/javascript/reservdel_frontend/state.mjs
 var Question = class extends CustomType {
-  constructor(id, text2, yes_options, is_terminal, visible) {
+  constructor(id, text2, strategy, is_terminal, visible) {
     super();
     this.id = id;
     this.text = text2;
-    this.yes_options = yes_options;
+    this.strategy = strategy;
     this.is_terminal = is_terminal;
     this.visible = visible;
   }
@@ -939,7 +910,7 @@ var Yellow = class extends CustomType {
 };
 var Green = class extends CustomType {
 };
-function init_state() {
+function get_questions() {
   return toList([
     new Question(
       1,
@@ -969,6 +940,19 @@ function init_state() {
 function console_log_1(msg) {
   console.log(msg);
 }
+function animateElement(id) {
+  try {
+    const element2 = document.getElementById(id);
+    element2.animate([
+      { opacity: 0 },
+      { opacity: 1 }
+    ], {
+      duration: 150,
+      easing: "ease-out"
+    });
+  } catch (error) {
+  }
+}
 
 // build/dev/javascript/reservdel_frontend/reservdel_frontend.mjs
 var ToggleVisibility = class extends CustomType {
@@ -978,18 +962,33 @@ var ToggleVisibility = class extends CustomType {
     this.yes = yes;
   }
 };
+function to_string7(model) {
+  let _pipe = model;
+  let _pipe$1 = map(
+    _pipe,
+    (question) => {
+      return "\ntext: " + question.text + ", id: " + to_string2(
+        question.id
+      ) + ", visible: " + to_string(question.visible);
+    }
+  );
+  return join2(_pipe$1, ", ");
+}
 function init2(_) {
-  return init_state();
+  return get_questions();
 }
 function toggle_visibility(model, msg) {
-  console_log_1("toggle_visibility, id: " + to_string(msg.q_nr));
+  console_log_1("toggle_visibility, id: " + to_string2(msg.q_nr));
   let _pipe = model;
   return map(
     _pipe,
     (question) => {
-      let $ = question.id === msg.q_nr;
-      if ($) {
-        return question.withFields({ visible: msg.yes === question.visible });
+      let next_id = msg.q_nr + 1;
+      let $ = question.id;
+      if (msg.q_nr === question.id) {
+        return question.withFields({ visible: true });
+      } else if (next_id === question.id) {
+        return question.withFields({ visible: true });
       } else {
         return question;
       }
@@ -997,38 +996,21 @@ function toggle_visibility(model, msg) {
   );
 }
 function update2(model, msg) {
-  return toggle_visibility(model, msg);
+  let state = toggle_visibility(model, msg);
+  console_log_1(to_string7(state));
+  return state;
 }
 function grade_to_color_class(grade) {
   if (grade instanceof Red) {
     return "bg-red-500";
   } else if (grade instanceof Yellow) {
-    return "bg-yellow-500";
+    return "bg-yellow-300";
   } else {
     return "bg-green-500";
   }
 }
 function grid(model) {
-  let headers = toList([
-    "Fr\xE5ga",
-    "Ha p\xE5 lager",
-    "K\xF6pa vid behov",
-    "Leverant\xF6rsavtal",
-    "Visa"
-  ]);
-  let header_elements = (() => {
-    let _pipe = headers;
-    return map(
-      _pipe,
-      (header) => {
-        return div(
-          toList([class$("p-2 border border-gray-200")]),
-          toList([text(header)])
-        );
-      }
-    );
-  })();
-  let row_elements = (() => {
+  let question_elements = (() => {
     let _pipe = model;
     let _pipe$1 = filter(
       _pipe,
@@ -1040,56 +1022,83 @@ function grid(model) {
       _pipe$1,
       (question) => {
         let grade_cells = toList([
-          grade_to_color_class(question.yes_options.hold_in_stock),
-          grade_to_color_class(question.yes_options.buy_on_demand),
-          grade_to_color_class(question.yes_options.supplier_contract)
+          grade_to_color_class(question.strategy.hold_in_stock),
+          grade_to_color_class(question.strategy.buy_on_demand),
+          grade_to_color_class(question.strategy.supplier_contract)
         ]);
-        let cells = (() => {
+        let strategy_row = (() => {
           let _pipe$2 = grade_cells;
           return map(
             _pipe$2,
             (cell) => {
               return div(
                 toList([
-                  class$("p-2 border border-gray-200 h-10 " + cell)
+                  class$(
+                    "p-2 border border-gray-200 h-10 w-full " + cell
+                  )
                 ]),
                 toList([])
               );
             }
           );
         })();
-        let question_cell = div(
-          toList([class$("p-2 border border-gray-200")]),
-          toList([text(question.text)])
+        let $ = animateElement(
+          (() => {
+            let _pipe$2 = question.id;
+            return to_string2(_pipe$2);
+          })()
         );
-        let radio_button = input(
+        let question_row = div(
+          toList([class$("flex items-center space-x-4 mx-auto")]),
           toList([
-            type_("radio"),
-            name("visibility"),
-            on_click(new ToggleVisibility(question.id, true))
+            div(
+              toList([class$("p-2 border border-gray-200 mr-2")]),
+              toList([text(question.text)])
+            ),
+            button(
+              toList([
+                name("visibility"),
+                class$(
+                  "bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded"
+                ),
+                on_click(new ToggleVisibility(question.id, true))
+              ]),
+              toList([text("N\xE4sta fr\xE5ga")])
+            )
           ])
         );
-        return append(toList([question_cell, radio_button]), cells);
+        return div(
+          toList([class$("space-y-2 mx-auto")]),
+          toList([
+            question_row,
+            div(
+              toList([class$("flex space-x-4")]),
+              strategy_row
+            )
+          ])
+        );
       }
     );
   })();
-  let grid_elements = append(header_elements, flatten(row_elements));
-  return div(
-    toList([class$("grid grid-cols-5 gap-4")]),
-    grid_elements
-  );
+  return div(toList([class$("space-y-2")]), question_elements);
 }
 function view(model) {
   return div(toList([]), toList([grid(model)]));
 }
 function main() {
+  console_log_1(
+    (() => {
+      let _pipe = init2(void 0);
+      return to_string7(_pipe);
+    })()
+  );
   let app = simple(init2, update2, view);
   let $ = start3(app, "#app", void 0);
   if (!$.isOk()) {
     throw makeError(
       "assignment_no_match",
       "reservdel_frontend",
-      105,
+      144,
       "main",
       "Assignment pattern did not match",
       { value: $ }
