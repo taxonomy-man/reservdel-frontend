@@ -51,13 +51,15 @@ pub fn update(model: Model, msg) -> Model {
   state
 }
 
-pub fn toggle_visibility(model: Model, msg: Msg) -> Model {
+pub fn toggle_visibility(model: List(Question), msg: Msg) -> List(Question) {
   console_log("toggle_visibility, id: " <> int.to_string(msg.q_nr))
   model
   |> list.map(fn(question) {
-    case question.id == msg.q_nr {
-      True -> state.Question(..question, id: msg.q_nr + 1, visible: True)
-      False -> question
+    let next_id = msg.q_nr + 1
+    case question.id {
+      _ if msg.q_nr == question.id -> state.Question(..question, visible: True)
+      _ if next_id == question.id -> state.Question(..question, visible: True)
+      _ -> question
     }
   })
 }

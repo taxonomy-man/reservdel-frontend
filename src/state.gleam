@@ -36,7 +36,7 @@ pub fn get_questions() {
         supplier_contract: Red,
       ),
       is_terminal: False,
-      visible: True,
+      visible: False,
     ),
     Question(
       3,
