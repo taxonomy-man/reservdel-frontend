@@ -7,7 +7,7 @@ import lustre/attribute
 import lustre/element
 import lustre/element/html
 import lustre/event
-import state.{type Grade, type Question}
+import state.{type Grade, type Question, type Strategy}
 
 @external(javascript, "./test.mjs", "console_log_1")
 pub fn console_log(str: String) -> Nil
@@ -28,6 +28,12 @@ pub fn to_string(model: Model) -> String {
     <> int.to_string(question.id)
     <> ", visible: "
     <> bool.to_string(question.visible)
+    <> ", hold_in_stock: "
+    <> grade_to_string(question.strategy.hold_in_stock)
+    <> ", buy_on_demand: "
+    <> grade_to_string(question.strategy.buy_on_demand)
+    <> ", supplier_contract: "
+    <> grade_to_string(question.strategy.supplier_contract)
   })
   |> string.join(", ")
 }
@@ -37,6 +43,7 @@ pub fn grade_to_string(grade: Grade) -> String {
     state.Red -> "Red"
     state.Yellow -> "Yellow"
     state.Green -> "Green"
+    state.White -> "White"
   }
 }
 
@@ -60,7 +67,18 @@ pub fn toggle_visibility(model: List(Question), msg: Msg) -> List(Question) {
   |> list.map(fn(question) {
     let next_id = msg.q_nr + 1
     case question.id {
-      _ if msg.q_nr == question.id -> state.Question(..question, visible: True)
+      _ if msg.q_nr == question.id && msg.yes == True ->
+        state.Question(..question, visible: True)
+      _ if msg.q_nr == question.id && msg.yes == False ->
+        state.Question(
+          ..question,
+          visible: True,
+          strategy: state.Strategy(
+            hold_in_stock: state.White,
+            buy_on_demand: state.White,
+            supplier_contract: state.White,
+          ),
+        )
       _ if next_id == question.id -> state.Question(..question, visible: True)
       _ -> question
     }
@@ -135,6 +153,7 @@ fn grade_to_color_class(grade: Grade) -> String {
     state.Red -> "bg-red-500"
     state.Yellow -> "bg-yellow-300"
     state.Green -> "bg-green-500"
+    state.White -> "bg-white"
   }
 }
 
