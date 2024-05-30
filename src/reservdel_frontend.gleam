@@ -7,7 +7,10 @@ import lustre/attribute
 import lustre/element
 import lustre/element/html
 import lustre/event
-import state.{type Answer, type Grade, type Question, type Strategy, No, Yes}
+import state.{
+  type Answer, type Grade, type Question, Gray, Green, No, Red, Strategy, White,
+  Yellow, Yes,
+}
 
 @external(javascript, "./test.mjs", "console_log_1")
 pub fn console_log(str: String) -> Nil
@@ -40,11 +43,11 @@ pub fn to_string(model: Model) -> String {
 
 pub fn grade_to_string(grade: Grade) -> String {
   case grade {
-    state.Red -> "Red"
-    state.Yellow -> "Yellow"
-    state.Green -> "Green"
-    state.White -> "White"
-    state.Gray -> "Gray"
+    Red -> "Red"
+    Yellow -> "Yellow"
+    Green -> "Green"
+    White -> "White"
+    Gray -> "Gray"
   }
 }
 
@@ -54,28 +57,33 @@ fn init(_flags) -> Model {
 
 pub type Msg {
   ToggleVisibility(q_nr: Int, ans: Answer)
+  Reset
 }
 
 pub fn update(model: Model, msg: Msg) -> Model {
-  let state = toggle_visibility(model, msg)
-  console_log(to_string(state))
-  state
+  case msg {
+    ToggleVisibility(q_nr, ans) -> toggle_visibility(model, q_nr, ans)
+    Reset -> init(Nil)
+  }
 }
 
-pub fn question_answered(msg: Msg, question: Question) -> Bool {
-  msg.q_nr == question.id
+pub fn is_current_question(q_nr, question: Question) -> Bool {
+  q_nr == question.id
 }
 
-pub fn toggle_visibility(model: List(Question), msg: Msg) -> List(Question) {
-  console_log("toggle_visibility, id: " <> int.to_string(msg.q_nr))
+pub fn toggle_visibility(
+  model: List(Question),
+  q_nr: Int,
+  ans: Answer,
+) -> List(Question) {
   let terminal_answered: Bool =
     list.any(model, fn(question: Question) {
-      question.is_terminal && question_answered(msg, question)
+      is_current_question(q_nr, question) && question.is_terminal
     })
   model
   |> list.map(fn(question) {
-    let is_answered = question_answered(msg, question)
-    let next_id = msg.q_nr + 1
+    let is_answered = is_current_question(q_nr, question)
+    let next_id = q_nr + 1
     case question.id {
       _ if is_answered && question.is_terminal ->
         // If the question is a terminal question and it's answered, keep its grades that are green, others turn gray
@@ -83,7 +91,7 @@ pub fn toggle_visibility(model: List(Question), msg: Msg) -> List(Question) {
           ..question,
           visible: True,
           answered: True,
-          strategy: state.Strategy(
+          strategy: Strategy(
             hold_in_stock: case question.strategy.hold_in_stock {
               state.Green -> state.Green
               _ -> state.Gray
@@ -103,22 +111,22 @@ pub fn toggle_visibility(model: List(Question), msg: Msg) -> List(Question) {
         state.Question(
           ..question,
           visible: True,
-          strategy: state.Strategy(
+          strategy: Strategy(
             hold_in_stock: state.Gray,
             buy_on_demand: state.Gray,
             supplier_contract: state.Gray,
           ),
         )
-      _ if is_answered && msg.ans == Yes ->
+      _ if is_answered && ans == Yes ->
         // If the question is answered with "yes" and it's the current question, set the next question's visibility to True
         state.Question(..question, visible: True, answered: True)
-      _ if is_answered && msg.ans == No ->
+      _ if is_answered && ans == No ->
         // If the question is answered with "no", set its grades to white and make it visible
         state.Question(
           ..question,
           visible: True,
           answered: True,
-          strategy: state.Strategy(
+          strategy: Strategy(
             hold_in_stock: state.White,
             buy_on_demand: state.White,
             supplier_contract: state.White,
@@ -193,7 +201,28 @@ pub fn grid(model: Model) -> element.Element(Msg) {
       ])
     })
 
-  html.div([attribute.class("space-y-2")], question_elements)
+  let reset_button =
+    html.button(
+      [
+        attribute.class(
+          "bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded",
+        ),
+        event.on_click(Reset),
+      ],
+      [element.text("återställ")],
+    )
+
+  let all_questions_answered =
+    list.all(model, fn(question) { question.visible && question.answered })
+
+  let elements = case all_questions_answered {
+    True -> {
+      list.append(question_elements, [reset_button])
+    }
+    False -> question_elements
+  }
+
+  html.div([attribute.class("space-y-2")], elements)
 }
 
 fn grade_to_color_class(grade: Grade) -> String {
