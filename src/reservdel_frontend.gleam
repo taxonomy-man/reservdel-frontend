@@ -32,7 +32,7 @@ pub fn to_string(model: Model) -> String {
   |> string.join(", ")
 }
 
-pub fn grade_to_string(grade: Grade) {
+pub fn grade_to_string(grade: Grade) -> String {
   case grade {
     state.Red -> "Red"
     state.Yellow -> "Yellow"
@@ -48,7 +48,7 @@ pub type Msg {
   ToggleVisibility(q_nr: Int, yes: Bool)
 }
 
-pub fn update(model: Model, msg) -> Model {
+pub fn update(model: Model, msg: Msg) -> Model {
   let state = toggle_visibility(model, msg)
   console_log(to_string(state))
   state
@@ -106,10 +106,17 @@ pub fn grid(model: Model) -> element.Element(Msg) {
               ),
               event.on_click(ToggleVisibility(question.id, yes: True)),
             ],
+            [element.text("Ja")],
+          ),
+          html.button(
             [
-              element.text("Nästa fråga"),
-              // Replace with your button text
+              attribute.name("visibility"),
+              attribute.class(
+                "bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-1 rounded",
+              ),
+              event.on_click(ToggleVisibility(question.id, yes: False)),
             ],
+            [element.text("Nej")],
           ),
         ])
 

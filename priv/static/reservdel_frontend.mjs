@@ -1063,7 +1063,17 @@ function grid(model) {
                 ),
                 on_click(new ToggleVisibility(question.id, true))
               ]),
-              toList([text("N\xE4sta fr\xE5ga")])
+              toList([text("Ja")])
+            ),
+            button(
+              toList([
+                name("visibility"),
+                class$(
+                  "bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-1 rounded"
+                ),
+                on_click(new ToggleVisibility(question.id, false))
+              ]),
+              toList([text("Nej")])
             )
           ])
         );
@@ -1098,7 +1108,7 @@ function main() {
     throw makeError(
       "assignment_no_match",
       "reservdel_frontend",
-      144,
+      151,
       "main",
       "Assignment pattern did not match",
       { value: $ }
