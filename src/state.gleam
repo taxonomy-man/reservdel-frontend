@@ -18,6 +18,7 @@ pub type Grade {
   Yellow
   Green
   White
+  Gray
 }
 
 pub fn get_questions() {

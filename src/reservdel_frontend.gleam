@@ -44,6 +44,7 @@ pub fn grade_to_string(grade: Grade) -> String {
     state.Yellow -> "Yellow"
     state.Green -> "Green"
     state.White -> "White"
+    state.Gray -> "Gray"
   }
 }
 
@@ -61,29 +62,41 @@ pub fn update(model: Model, msg: Msg) -> Model {
   state
 }
 
-// Updated toggle_visibility function
+pub fn question_answered(msg: Msg, question: Question) -> Bool {
+  msg.q_nr == question.id && msg.yes == True
+}
+
 pub fn toggle_visibility(model: List(Question), msg: Msg) -> List(Question) {
   console_log("toggle_visibility, id: " <> int.to_string(msg.q_nr))
+  let terminal_answered: Bool =
+    list.any(model, fn(question: Question) {
+      question.is_terminal && question_answered(msg, question)
+    })
   model
   |> list.map(fn(question) {
+    let is_answered = question_answered(msg, question)
     let next_id = msg.q_nr + 1
     case question.id {
-      _ if msg.q_nr == question.id && msg.yes == True ->
+      _ if is_answered && question.is_terminal ->
+        // If the question is a terminal question and it's answered, keep its current grades and make all questions visible and gray
         state.Question(..question, visible: True, answered: True)
-      _ if msg.q_nr == question.id && msg.yes == False ->
-        // Check if the question is not answered
+      _ if terminal_answered ->
+        // If any terminal question is answered, set all other questions' grades to gray and make them visible
         state.Question(
           ..question,
           visible: True,
-          answered: True,
           strategy: state.Strategy(
-            hold_in_stock: state.White,
-            buy_on_demand: state.White,
-            supplier_contract: state.White,
+            hold_in_stock: state.Gray,
+            buy_on_demand: state.Gray,
+            supplier_contract: state.Gray,
           ),
         )
-      _ if next_id == question.id -> state.Question(..question, visible: True)
-      // Make the next question visible
+      _ if is_answered && question.id == msg.q_nr ->
+        // If the question is answered and it's the current question, set the next question's visibility to True
+        state.Question(..question, visible: True, answered: True)
+      _ if question.id == next_id ->
+        // If the question is the next question, set its visibility to True
+        state.Question(..question, visible: True)
       _ -> question
     }
   })
@@ -161,6 +174,7 @@ fn grade_to_color_class(grade: Grade) -> String {
     state.Yellow -> "bg-yellow-300"
     state.Green -> "bg-green-500"
     state.White -> "bg-white"
+    state.Gray -> "bg-gray-200"
   }
 }
 
