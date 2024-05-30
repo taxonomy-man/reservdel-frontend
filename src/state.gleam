@@ -5,6 +5,7 @@ pub type Question {
     strategy: Strategy,
     is_terminal: Bool,
     visible: Bool,
+    answered: Bool,
   )
 }
 
@@ -27,6 +28,7 @@ pub fn get_questions() {
       Strategy(Green, Red, Yellow),
       is_terminal: False,
       visible: True,
+      answered: False,
     ),
     Question(
       2,
@@ -38,6 +40,7 @@ pub fn get_questions() {
       ),
       is_terminal: False,
       visible: False,
+      answered: False,
     ),
     Question(
       3,
@@ -45,6 +48,7 @@ pub fn get_questions() {
       Strategy(Green, Red, Red),
       is_terminal: True,
       visible: False,
+      answered: False,
     ),
   ]
 }

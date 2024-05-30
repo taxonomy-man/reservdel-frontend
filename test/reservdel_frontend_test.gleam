@@ -23,6 +23,7 @@ pub fn set_visible_test() {
       Strategy(state.Green, state.Red, state.Yellow),
       is_terminal: False,
       visible: False,
+      answered: False,
     ),
     Question(
       2,
@@ -34,9 +35,8 @@ pub fn set_visible_test() {
       ),
       is_terminal: False,
       visible: False,
+      answered: False,
     ),
   ]
-
-  let updated_questions = questions
   //set_visible(questions)
 }

@@ -61,6 +61,7 @@ pub fn update(model: Model, msg: Msg) -> Model {
   state
 }
 
+// Updated toggle_visibility function
 pub fn toggle_visibility(model: List(Question), msg: Msg) -> List(Question) {
   console_log("toggle_visibility, id: " <> int.to_string(msg.q_nr))
   model
@@ -68,11 +69,13 @@ pub fn toggle_visibility(model: List(Question), msg: Msg) -> List(Question) {
     let next_id = msg.q_nr + 1
     case question.id {
       _ if msg.q_nr == question.id && msg.yes == True ->
-        state.Question(..question, visible: True)
+        state.Question(..question, visible: True, answered: True)
       _ if msg.q_nr == question.id && msg.yes == False ->
+        // Check if the question is not answered
         state.Question(
           ..question,
           visible: True,
+          answered: True,
           strategy: state.Strategy(
             hold_in_stock: state.White,
             buy_on_demand: state.White,
@@ -80,6 +83,7 @@ pub fn toggle_visibility(model: List(Question), msg: Msg) -> List(Question) {
           ),
         )
       _ if next_id == question.id -> state.Question(..question, visible: True)
+      // Make the next question visible
       _ -> question
     }
   })
@@ -96,19 +100,22 @@ pub fn grid(model: Model) -> element.Element(Msg) {
         grade_to_color_class(question.strategy.supplier_contract),
       ]
 
-      let strategy_row =
-        grade_cells
-        |> list.map(fn(cell) {
-          html.div(
-            [attribute.class("p-2 border border-gray-200 h-10 w-full " <> cell)],
-            [],
-          )
-        })
-      let _ =
-        animate_element(
-          question.id
-          |> int.to_string,
-        )
+      let strategy_row = case question.answered {
+        True ->
+          grade_cells
+          |> list.map(fn(cell) {
+            html.div(
+              [
+                attribute.class(
+                  "p-2 border border-gray-200 h-10 w-full " <> cell,
+                ),
+              ],
+              [],
+            )
+          })
+        False -> []
+      }
+
       let question_row =
         html.div([attribute.class("flex items-center space-x-4 mx-auto")], [
           // Removed 'flex-1' class
