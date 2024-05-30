@@ -78,8 +78,26 @@ pub fn toggle_visibility(model: List(Question), msg: Msg) -> List(Question) {
     let next_id = msg.q_nr + 1
     case question.id {
       _ if is_answered && question.is_terminal ->
-        // If the question is a terminal question and it's answered, keep its current grades and make all questions visible and gray
-        state.Question(..question, visible: True, answered: True)
+        // If the question is a terminal question and it's answered, keep its grades that are green, others turn gray
+        state.Question(
+          ..question,
+          visible: True,
+          answered: True,
+          strategy: state.Strategy(
+            hold_in_stock: case question.strategy.hold_in_stock {
+              state.Green -> state.Green
+              _ -> state.Gray
+            },
+            buy_on_demand: case question.strategy.buy_on_demand {
+              state.Green -> state.Green
+              _ -> state.Gray
+            },
+            supplier_contract: case question.strategy.supplier_contract {
+              state.Green -> state.Green
+              _ -> state.Gray
+            },
+          ),
+        )
       _ if terminal_answered ->
         // If any terminal question is answered, set all other questions' grades to gray and make them visible
         state.Question(
