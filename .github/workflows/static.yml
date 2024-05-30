@@ -31,7 +31,6 @@ jobs:
           # Upload static files and index.html
           path: |
             priv/static
-            index.html
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
