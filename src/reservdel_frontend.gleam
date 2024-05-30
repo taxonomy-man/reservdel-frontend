@@ -7,7 +7,7 @@ import lustre/attribute
 import lustre/element
 import lustre/element/html
 import lustre/event
-import state.{type Grade, type Question, type Strategy}
+import state.{type Answer, type Grade, type Question, type Strategy, No, Yes}
 
 @external(javascript, "./test.mjs", "console_log_1")
 pub fn console_log(str: String) -> Nil
@@ -53,7 +53,7 @@ fn init(_flags) -> Model {
 }
 
 pub type Msg {
-  ToggleVisibility(q_nr: Int, yes: Bool)
+  ToggleVisibility(q_nr: Int, ans: Answer)
 }
 
 pub fn update(model: Model, msg: Msg) -> Model {
@@ -63,7 +63,7 @@ pub fn update(model: Model, msg: Msg) -> Model {
 }
 
 pub fn question_answered(msg: Msg, question: Question) -> Bool {
-  msg.q_nr == question.id && msg.yes == True
+  msg.q_nr == question.id
 }
 
 pub fn toggle_visibility(model: List(Question), msg: Msg) -> List(Question) {
@@ -109,9 +109,21 @@ pub fn toggle_visibility(model: List(Question), msg: Msg) -> List(Question) {
             supplier_contract: state.Gray,
           ),
         )
-      _ if is_answered && question.id == msg.q_nr ->
-        // If the question is answered and it's the current question, set the next question's visibility to True
+      _ if is_answered && msg.ans == Yes ->
+        // If the question is answered with "yes" and it's the current question, set the next question's visibility to True
         state.Question(..question, visible: True, answered: True)
+      _ if is_answered && msg.ans == No ->
+        // If the question is answered with "no", set its grades to white and make it visible
+        state.Question(
+          ..question,
+          visible: True,
+          answered: True,
+          strategy: state.Strategy(
+            hold_in_stock: state.White,
+            buy_on_demand: state.White,
+            supplier_contract: state.White,
+          ),
+        )
       _ if question.id == next_id ->
         // If the question is the next question, set its visibility to True
         state.Question(..question, visible: True)
@@ -131,6 +143,7 @@ pub fn grid(model: Model) -> element.Element(Msg) {
         grade_to_color_class(question.strategy.supplier_contract),
       ]
 
+      // Always show the strategy row if the question is answered, regardless of the answer being yes or no
       let strategy_row = case question.answered {
         True ->
           grade_cells
@@ -149,9 +162,7 @@ pub fn grid(model: Model) -> element.Element(Msg) {
 
       let question_row =
         html.div([attribute.class("flex items-center space-x-4 mx-auto")], [
-          // Removed 'flex-1' class
           html.div([attribute.class("p-2 border border-gray-200 mr-2")], [
-            // Added 'mr-4' class for margin
             element.text(question.text),
           ]),
           html.button(
@@ -160,7 +171,7 @@ pub fn grid(model: Model) -> element.Element(Msg) {
               attribute.class(
                 "bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded",
               ),
-              event.on_click(ToggleVisibility(question.id, yes: True)),
+              event.on_click(ToggleVisibility(question.id, ans: state.Yes)),
             ],
             [element.text("Ja")],
           ),
@@ -170,14 +181,13 @@ pub fn grid(model: Model) -> element.Element(Msg) {
               attribute.class(
                 "bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-1 rounded",
               ),
-              event.on_click(ToggleVisibility(question.id, yes: False)),
+              event.on_click(ToggleVisibility(question.id, ans: state.No)),
             ],
             [element.text("Nej")],
           ),
         ])
 
       html.div([attribute.class("space-y-2 mx-auto")], [
-        // Added 'mx-auto' class for centering
         question_row,
         html.div([attribute.class("flex space-x-4")], strategy_row),
       ])

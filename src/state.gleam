@@ -9,6 +9,11 @@ pub type Question {
   )
 }
 
+pub type Answer {
+  Yes
+  No
+}
+
 pub type Strategy {
   Strategy(hold_in_stock: Grade, buy_on_demand: Grade, supplier_contract: Grade)
 }
