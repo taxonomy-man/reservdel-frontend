@@ -1,3 +1,5 @@
+import gleam/option.{type Option, None}
+
 pub type Question {
   Question(
     id: Int,
@@ -5,7 +7,7 @@ pub type Question {
     strategy: Strategy,
     is_terminal: Bool,
     visible: Bool,
-    answered: Bool,
+    answer: Option(Answer),
   )
 }
 
@@ -34,7 +36,7 @@ pub fn get_questions() {
       Strategy(Green, Red, Yellow),
       is_terminal: False,
       visible: True,
-      answered: False,
+      answer: None,
     ),
     Question(
       2,
@@ -46,7 +48,7 @@ pub fn get_questions() {
       ),
       is_terminal: False,
       visible: False,
-      answered: False,
+      answer: None,
     ),
     Question(
       3,
@@ -54,7 +56,7 @@ pub fn get_questions() {
       Strategy(Green, Red, Red),
       is_terminal: True,
       visible: False,
-      answered: False,
+      answer: None,
     ),
   ]
 }

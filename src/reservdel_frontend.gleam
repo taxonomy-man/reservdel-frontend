@@ -1,6 +1,7 @@
 import gleam/bool
 import gleam/int
 import gleam/list
+import gleam/option.{type Option, None, Some}
 import gleam/string
 import lustre
 import lustre/attribute
@@ -24,7 +25,7 @@ pub type Model =
 pub fn to_string(model: Model) -> String {
   model
   |> list.map(fn(question) {
-    "\n"
+    "\n------------------\n"
     <> "text: "
     <> question.text
     <> ", id: "
@@ -37,6 +38,8 @@ pub fn to_string(model: Model) -> String {
     <> grade_to_string(question.strategy.buy_on_demand)
     <> ", supplier_contract: "
     <> grade_to_string(question.strategy.supplier_contract)
+    <> ", answer: "
+    <> answer_to_string(question.answer)
   })
   |> string.join(", ")
 }
@@ -48,6 +51,14 @@ pub fn grade_to_string(grade: Grade) -> String {
     Green -> "Green"
     White -> "White"
     Gray -> "Gray"
+  }
+}
+
+pub fn answer_to_string(answer: Option(Answer)) -> String {
+  case answer {
+    Some(Yes) -> "Yes"
+    Some(No) -> "No"
+    None -> "None"
   }
 }
 
@@ -67,8 +78,11 @@ pub fn update(model: Model, msg: Msg) -> Model {
   }
 }
 
-pub fn is_current_question(q_nr, question: Question) -> Bool {
-  q_nr == question.id
+pub fn terminal_question_been_answered_yes(questions: List(Question)) -> Bool {
+  questions
+  |> list.any(fn(question) {
+    question.is_terminal && question.answer == Some(Yes)
+  })
 }
 
 pub fn toggle_visibility(
@@ -76,65 +90,40 @@ pub fn toggle_visibility(
   q_nr: Int,
   ans: Answer,
 ) -> List(Question) {
-  let terminal_answered: Bool =
-    list.any(model, fn(question: Question) {
-      is_current_question(q_nr, question) && question.is_terminal
-    })
+  let next_id = q_nr + 1
+  let terminal = terminal_question_been_answered_yes(model)
+
   model
   |> list.map(fn(question) {
-    let is_answered = is_current_question(q_nr, question)
-    let next_id = q_nr + 1
-    case question.id {
-      _ if is_answered && question.is_terminal ->
-        // If the question is a terminal question and it's answered, keep its grades that are green, others turn gray
+    case question.id == q_nr {
+      True if ans == Yes ->
+        state.Question(..question, visible: True, answer: Some(Yes))
+
+      True if ans == No ->
         state.Question(
           ..question,
           visible: True,
-          answered: True,
-          strategy: Strategy(
-            hold_in_stock: case question.strategy.hold_in_stock {
-              state.Green -> state.Green
-              _ -> state.Gray
-            },
-            buy_on_demand: case question.strategy.buy_on_demand {
-              state.Green -> state.Green
-              _ -> state.Gray
-            },
-            supplier_contract: case question.strategy.supplier_contract {
-              state.Green -> state.Green
-              _ -> state.Gray
-            },
-          ),
-        )
-      _ if terminal_answered ->
-        // If any terminal question is answered, set all other questions' grades to gray and make them visible
-        state.Question(
-          ..question,
-          visible: True,
-          strategy: Strategy(
-            hold_in_stock: state.Gray,
-            buy_on_demand: state.Gray,
-            supplier_contract: state.Gray,
-          ),
-        )
-      _ if is_answered && ans == Yes ->
-        // If the question is answered with "yes" and it's the current question, set the next question's visibility to True
-        state.Question(..question, visible: True, answered: True)
-      _ if is_answered && ans == No ->
-        // If the question is answered with "no", set its grades to white and make it visible
-        state.Question(
-          ..question,
-          visible: True,
-          answered: True,
+          answer: Some(No),
           strategy: Strategy(
             hold_in_stock: state.White,
             buy_on_demand: state.White,
             supplier_contract: state.White,
           ),
         )
-      _ if question.id == next_id ->
-        // If the question is the next question, set its visibility to True
+
+      False if question.id == next_id ->
         state.Question(..question, visible: True)
+
+      False if terminal == True ->
+        state.Question(
+          ..question,
+          strategy: Strategy(
+            hold_in_stock: state.Red,
+            buy_on_demand: state.Red,
+            supplier_contract: state.Red,
+          ),
+        )
+
       _ -> question
     }
   })
@@ -152,8 +141,8 @@ pub fn grid(model: Model) -> element.Element(Msg) {
       ]
 
       // Always show the strategy row if the question is answered, regardless of the answer being yes or no
-      let strategy_row = case question.answered {
-        True ->
+      let strategy_row = case question.answer {
+        Some(Yes) | Some(No) ->
           grade_cells
           |> list.map(fn(cell) {
             html.div(
@@ -165,7 +154,7 @@ pub fn grid(model: Model) -> element.Element(Msg) {
               [],
             )
           })
-        False -> []
+        None -> []
       }
 
       let question_row =
@@ -213,7 +202,7 @@ pub fn grid(model: Model) -> element.Element(Msg) {
     )
 
   let all_questions_answered =
-    list.all(model, fn(question) { question.visible && question.answered })
+    list.all(model, fn(question) { question.visible && question.answer != None })
 
   let elements = case all_questions_answered {
     True -> {
