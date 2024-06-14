@@ -196,6 +196,12 @@ function guard(requirement, consequence, alternative) {
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/option.mjs
+var Some = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
 var None = class extends CustomType {
 };
 
@@ -263,6 +269,61 @@ function do_map(loop$list, loop$fun, loop$acc) {
 function map(list, fun) {
   return do_map(list, fun, toList([]));
 }
+function do_append(loop$first, loop$second) {
+  while (true) {
+    let first = loop$first;
+    let second = loop$second;
+    if (first.hasLength(0)) {
+      return second;
+    } else {
+      let item = first.head;
+      let rest$1 = first.tail;
+      loop$first = rest$1;
+      loop$second = prepend(item, second);
+    }
+  }
+}
+function append(first, second) {
+  return do_append(reverse(first), second);
+}
+function all(loop$list, loop$predicate) {
+  while (true) {
+    let list = loop$list;
+    let predicate = loop$predicate;
+    if (list.hasLength(0)) {
+      return true;
+    } else {
+      let first$1 = list.head;
+      let rest$1 = list.tail;
+      let $ = predicate(first$1);
+      if ($) {
+        loop$list = rest$1;
+        loop$predicate = predicate;
+      } else {
+        return false;
+      }
+    }
+  }
+}
+function any(loop$list, loop$predicate) {
+  while (true) {
+    let list = loop$list;
+    let predicate = loop$predicate;
+    if (list.hasLength(0)) {
+      return false;
+    } else {
+      let first$1 = list.head;
+      let rest$1 = list.tail;
+      let $ = predicate(first$1);
+      if ($) {
+        return true;
+      } else {
+        loop$list = rest$1;
+        loop$predicate = predicate;
+      }
+    }
+  }
+}
 
 // build/dev/javascript/gleam_stdlib/gleam/dynamic.mjs
 function from(a) {
@@ -307,9 +368,9 @@ function join2(strings, separator) {
 
 // build/dev/javascript/lustre/lustre/effect.mjs
 var Effect = class extends CustomType {
-  constructor(all) {
+  constructor(all2) {
     super();
-    this.all = all;
+    this.all = all2;
   }
 };
 function none() {
@@ -887,14 +948,19 @@ function on_click(msg) {
 
 // build/dev/javascript/reservdel_frontend/state.mjs
 var Question = class extends CustomType {
-  constructor(id, text2, strategy, is_terminal, visible) {
+  constructor(id, text2, strategy, is_terminal, visible, answer) {
     super();
     this.id = id;
     this.text = text2;
     this.strategy = strategy;
     this.is_terminal = is_terminal;
     this.visible = visible;
+    this.answer = answer;
   }
+};
+var Yes = class extends CustomType {
+};
+var No = class extends CustomType {
 };
 var Strategy = class extends CustomType {
   constructor(hold_in_stock, buy_on_demand, supplier_contract) {
@@ -910,6 +976,10 @@ var Yellow = class extends CustomType {
 };
 var Green = class extends CustomType {
 };
+var White = class extends CustomType {
+};
+var Gray = class extends CustomType {
+};
 function get_questions() {
   return toList([
     new Question(
@@ -917,21 +987,24 @@ function get_questions() {
       "\xC4r reservdelen dyr?",
       new Strategy(new Green(), new Red(), new Yellow()),
       false,
-      true
+      true,
+      new None()
     ),
     new Question(
       2,
       "Har reservdelen h\xF6g oms\xE4ttning?",
       new Strategy(new Yellow(), new Yellow(), new Red()),
       false,
-      false
+      false,
+      new None()
     ),
     new Question(
       3,
       "\xC4r till\xE5ten stillest\xE5ndstid kortare \xE4n leveranstider?",
-      new Strategy(new Green(), new Red(), new Red()),
+      new Strategy(new Green(), new Gray(), new Gray()),
       true,
-      false
+      false,
+      new None()
     )
   ]);
 }
@@ -940,36 +1013,53 @@ function get_questions() {
 function console_log_1(msg) {
   console.log(msg);
 }
-function animateElement(id) {
-  try {
-    const element2 = document.getElementById(id);
-    element2.animate([
-      { opacity: 0 },
-      { opacity: 1 }
-    ], {
-      duration: 150,
-      easing: "ease-out"
-    });
-  } catch (error) {
-  }
-}
 
 // build/dev/javascript/reservdel_frontend/reservdel_frontend.mjs
 var ToggleVisibility = class extends CustomType {
-  constructor(q_nr, yes) {
+  constructor(q_nr, ans) {
     super();
     this.q_nr = q_nr;
-    this.yes = yes;
+    this.ans = ans;
   }
 };
+var Reset = class extends CustomType {
+};
+function grade_to_string(grade) {
+  if (grade instanceof Red) {
+    return "Red";
+  } else if (grade instanceof Yellow) {
+    return "Yellow";
+  } else if (grade instanceof Green) {
+    return "Green";
+  } else if (grade instanceof White) {
+    return "White";
+  } else {
+    return "Gray";
+  }
+}
+function answer_to_string(answer) {
+  if (answer instanceof Some && answer[0] instanceof Yes) {
+    return "Yes";
+  } else if (answer instanceof Some && answer[0] instanceof No) {
+    return "No";
+  } else {
+    return "None";
+  }
+}
 function to_string7(model) {
   let _pipe = model;
   let _pipe$1 = map(
     _pipe,
     (question) => {
-      return "\ntext: " + question.text + ", id: " + to_string2(
+      return "\n------------------\ntext: " + question.text + ", id: " + to_string2(
         question.id
-      ) + ", visible: " + to_string(question.visible);
+      ) + ", visible: " + to_string(question.visible) + ", hold_in_stock: " + grade_to_string(
+        question.strategy.hold_in_stock
+      ) + ", buy_on_demand: " + grade_to_string(
+        question.strategy.buy_on_demand
+      ) + ", supplier_contract: " + grade_to_string(
+        question.strategy.supplier_contract
+      ) + ", answer: " + answer_to_string(question.answer);
     }
   );
   return join2(_pipe$1, ", ");
@@ -977,39 +1067,71 @@ function to_string7(model) {
 function init2(_) {
   return get_questions();
 }
-function toggle_visibility(model, msg) {
-  console_log_1("toggle_visibility, id: " + to_string2(msg.q_nr));
+function toggle_visibility(model, q_nr, ans) {
+  console_log_1(
+    (() => {
+      let _pipe2 = model;
+      return to_string7(_pipe2);
+    })()
+  );
   let _pipe = model;
   return map(
     _pipe,
     (question) => {
-      let next_id = msg.q_nr + 1;
-      let $ = question.id;
-      if (msg.q_nr === question.id) {
-        return question.withFields({ visible: true });
-      } else if (next_id === question.id) {
-        return question.withFields({ visible: true });
+      let $ = question.id === q_nr;
+      if ($) {
+        if (ans instanceof Yes) {
+          return question.withFields({
+            visible: true,
+            answer: new Some(new Yes())
+          });
+        } else {
+          return question.withFields({
+            visible: true,
+            answer: new Some(new No())
+          });
+        }
       } else {
-        return question;
+        return question.withFields({ visible: true });
       }
     }
   );
 }
 function update2(model, msg) {
-  let state = toggle_visibility(model, msg);
-  console_log_1(to_string7(state));
-  return state;
+  if (msg instanceof ToggleVisibility) {
+    let q_nr = msg.q_nr;
+    let ans = msg.ans;
+    return toggle_visibility(model, q_nr, ans);
+  } else {
+    return init2(void 0);
+  }
 }
 function grade_to_color_class(grade) {
   if (grade instanceof Red) {
     return "bg-red-500";
   } else if (grade instanceof Yellow) {
     return "bg-yellow-300";
-  } else {
+  } else if (grade instanceof Green) {
     return "bg-green-500";
+  } else if (grade instanceof White) {
+    return "bg-white";
+  } else {
+    return "bg-gray-300";
   }
 }
 function grid(model) {
+  let terminal_yes_answered = (() => {
+    let _pipe = model;
+    return any(
+      _pipe,
+      (question) => {
+        return question.is_terminal && isEqual(
+          question.answer,
+          new Some(new Yes())
+        );
+      }
+    );
+  })();
   let question_elements = (() => {
     let _pipe = model;
     let _pipe$1 = filter(
@@ -1021,62 +1143,169 @@ function grid(model) {
     return map(
       _pipe$1,
       (question) => {
-        let grade_cells = toList([
-          grade_to_color_class(question.strategy.hold_in_stock),
-          grade_to_color_class(question.strategy.buy_on_demand),
-          grade_to_color_class(question.strategy.supplier_contract)
-        ]);
+        let grade_cells = (() => {
+          if (terminal_yes_answered) {
+            let $ = question.is_terminal;
+            if ($) {
+              return toList([
+                grade_to_color_class(question.strategy.hold_in_stock),
+                grade_to_color_class(question.strategy.buy_on_demand),
+                grade_to_color_class(question.strategy.supplier_contract)
+              ]);
+            } else {
+              return toList(["bg-gray-300", "bg-gray-300", "bg-gray-300"]);
+            }
+          } else {
+            return toList([
+              grade_to_color_class(question.strategy.hold_in_stock),
+              grade_to_color_class(question.strategy.buy_on_demand),
+              grade_to_color_class(question.strategy.supplier_contract)
+            ]);
+          }
+        })();
         let strategy_row = (() => {
-          let _pipe$2 = grade_cells;
-          return map(
-            _pipe$2,
-            (cell) => {
+          let $ = question.answer;
+          if ($ instanceof Some && $[0] instanceof Yes) {
+            let _pipe$2 = grade_cells;
+            return map(
+              _pipe$2,
+              (cell) => {
+                return div(
+                  toList([
+                    class$(
+                      "p-2 border border-gray-200 h-10 w-full " + cell
+                    )
+                  ]),
+                  toList([])
+                );
+              }
+            );
+          } else if ($ instanceof Some && $[0] instanceof No && terminal_yes_answered) {
+            let _pipe$2 = grade_cells;
+            return map(
+              _pipe$2,
+              (cell) => {
+                return div(
+                  toList([
+                    class$(
+                      "p-2 border border-gray-200 h-10 w-full bg-gray-300"
+                    )
+                  ]),
+                  toList([])
+                );
+              }
+            );
+          } else if ($ instanceof Some && $[0] instanceof No) {
+            let _pipe$2 = grade_cells;
+            return map(
+              _pipe$2,
+              (cell) => {
+                return div(
+                  toList([
+                    class$(
+                      "p-2 border border-gray-200 h-10 w-full bg-white"
+                    )
+                  ]),
+                  toList([])
+                );
+              }
+            );
+          } else {
+            return toList([]);
+          }
+        })();
+        let question_row = (() => {
+          if (terminal_yes_answered) {
+            let $ = question.is_terminal;
+            if ($) {
               return div(
                 toList([
-                  class$(
-                    "p-2 border border-gray-200 h-10 w-full " + cell
-                  )
+                  class$("flex items-center space-x-4 mx-auto")
                 ]),
-                toList([])
+                toList([
+                  div(
+                    toList([
+                      class$("p-2 border border-gray-200 mr-2")
+                    ]),
+                    toList([text(question.text)])
+                  ),
+                  button(
+                    toList([
+                      name("visibility"),
+                      class$(
+                        "bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded"
+                      ),
+                      on_click(
+                        new ToggleVisibility(question.id, new Yes())
+                      )
+                    ]),
+                    toList([text("Ja")])
+                  ),
+                  button(
+                    toList([
+                      name("visibility"),
+                      class$(
+                        "bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-1 rounded"
+                      ),
+                      on_click(
+                        new ToggleVisibility(question.id, new No())
+                      )
+                    ]),
+                    toList([text("Nej")])
+                  )
+                ])
+              );
+            } else {
+              return div(
+                toList([
+                  class$("flex items-center space-x-4 mx-auto")
+                ]),
+                toList([
+                  div(
+                    toList([
+                      class$("p-2 border border-gray-200 mr-2")
+                    ]),
+                    toList([text(question.text)])
+                  )
+                ])
               );
             }
-          );
+          } else {
+            return div(
+              toList([class$("flex items-center space-x-4 mx-auto")]),
+              toList([
+                div(
+                  toList([class$("p-2 border border-gray-200 mr-2")]),
+                  toList([text(question.text)])
+                ),
+                button(
+                  toList([
+                    name("visibility"),
+                    class$(
+                      "bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded"
+                    ),
+                    on_click(
+                      new ToggleVisibility(question.id, new Yes())
+                    )
+                  ]),
+                  toList([text("Ja")])
+                ),
+                button(
+                  toList([
+                    name("visibility"),
+                    class$(
+                      "bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-1 rounded"
+                    ),
+                    on_click(
+                      new ToggleVisibility(question.id, new No())
+                    )
+                  ]),
+                  toList([text("Nej")])
+                )
+              ])
+            );
+          }
         })();
-        let $ = animateElement(
-          (() => {
-            let _pipe$2 = question.id;
-            return to_string2(_pipe$2);
-          })()
-        );
-        let question_row = div(
-          toList([class$("flex items-center space-x-4 mx-auto")]),
-          toList([
-            div(
-              toList([class$("p-2 border border-gray-200 mr-2")]),
-              toList([text(question.text)])
-            ),
-            button(
-              toList([
-                name("visibility"),
-                class$(
-                  "bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded"
-                ),
-                on_click(new ToggleVisibility(question.id, true))
-              ]),
-              toList([text("Ja")])
-            ),
-            button(
-              toList([
-                name("visibility"),
-                class$(
-                  "bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-1 rounded"
-                ),
-                on_click(new ToggleVisibility(question.id, false))
-              ]),
-              toList([text("Nej")])
-            )
-          ])
-        );
         return div(
           toList([class$("space-y-2 mx-auto")]),
           toList([
@@ -1090,7 +1319,29 @@ function grid(model) {
       }
     );
   })();
-  return div(toList([class$("space-y-2")]), question_elements);
+  let reset_button = button(
+    toList([
+      class$(
+        "bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded"
+      ),
+      on_click(new Reset())
+    ]),
+    toList([text("\xE5terst\xE4ll")])
+  );
+  let all_questions_answered = all(
+    model,
+    (question) => {
+      return question.visible && !isEqual(question.answer, new None());
+    }
+  );
+  let elements = (() => {
+    if (all_questions_answered) {
+      return append(question_elements, toList([reset_button]));
+    } else {
+      return question_elements;
+    }
+  })();
+  return div(toList([class$("space-y-2")]), elements);
 }
 function view(model) {
   return div(toList([]), toList([grid(model)]));
@@ -1108,7 +1359,7 @@ function main() {
     throw makeError(
       "assignment_no_match",
       "reservdel_frontend",
-      151,
+      297,
       "main",
       "Assignment pattern did not match",
       { value: $ }
