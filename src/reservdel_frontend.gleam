@@ -9,8 +9,8 @@ import lustre/element
 import lustre/element/html
 import lustre/event
 import state.{
-  type Answer, type Grade, type Question, Gray, Green, No, Red, Strategy, White,
-  Yellow, Yes,
+  type Answer, type Grade, type Question, Gray, Green, No, Red, White, Yellow,
+  Yes,
 }
 
 @external(javascript, "./test.mjs", "console_log_1")
@@ -68,47 +68,14 @@ fn init(_flags) -> Model {
 
 pub type Msg {
   ToggleVisibility(q_nr: Int, ans: Answer)
-  ToggleTerminalVisibility(q_nr: Int)
   Reset
 }
 
 pub fn update(model: Model, msg: Msg) -> Model {
   case msg {
     ToggleVisibility(q_nr, ans) -> toggle_visibility(model, q_nr, ans)
-    ToggleTerminalVisibility(q_nr) -> handle_terminal_question(model, q_nr)
     Reset -> init(Nil)
   }
-}
-
-pub fn handle_terminal_question(
-  model: List(Question),
-  q_nr: Int,
-) -> List(Question) {
-  let updated_model =
-    model
-    |> list.map(fn(question) {
-      case question.id == q_nr {
-        True -> state.Question(..question, visible: True, answer: Some(Yes))
-        _ -> question
-      }
-    })
-
-  updated_model
-  |> list.map(fn(question) {
-    case question.id == q_nr {
-      True -> question
-      False ->
-        state.Question(
-          ..question,
-          visible: True,
-          strategy: Strategy(
-            hold_in_stock: state.Gray,
-            buy_on_demand: state.Gray,
-            supplier_contract: state.Gray,
-          ),
-        )
-    }
-  })
 }
 
 pub fn toggle_visibility(
@@ -116,49 +83,63 @@ pub fn toggle_visibility(
   q_nr: Int,
   ans: Answer,
 ) -> List(Question) {
+  console_log(model |> to_string)
   model
   |> list.map(fn(question) {
-    let next_id = question.id + 1
     case question.id == q_nr {
       True ->
         case ans {
           Yes -> state.Question(..question, visible: True, answer: Some(Yes))
-          No ->
-            state.Question(
-              ..question,
-              visible: True,
-              answer: Some(No),
-              strategy: Strategy(
-                hold_in_stock: state.White,
-                buy_on_demand: state.White,
-                supplier_contract: state.White,
-              ),
-            )
+          No -> state.Question(..question, visible: True, answer: Some(No))
         }
-      False -> state.Question(..question, visible: True, id: next_id)
+      False -> state.Question(..question, visible: True)
     }
   })
 }
 
 pub fn grid(model: Model) -> element.Element(Msg) {
+  // Check if any terminal question has been answered Yes
+  let terminal_yes_answered =
+    model
+    |> list.any(fn(question) {
+      question.is_terminal && question.answer == Some(Yes)
+    })
+
   let question_elements =
     model
     |> list.filter(fn(question) { question.visible })
     |> list.map(fn(question) {
-      let grade_cells = [
-        grade_to_color_class(question.strategy.hold_in_stock),
-        grade_to_color_class(question.strategy.buy_on_demand),
-        grade_to_color_class(question.strategy.supplier_contract),
-      ]
+      // If a terminal question has Yes and this is not the terminal question, show gray cells
+
+      let grade_cells = case terminal_yes_answered && !question.is_terminal {
+        True -> ["bg-gray-300"]
+        False -> [
+          grade_to_color_class(question.strategy.hold_in_stock),
+          grade_to_color_class(question.strategy.buy_on_demand),
+          grade_to_color_class(question.strategy.supplier_contract),
+        ]
+      }
 
       let strategy_row = case question.answer {
-        Some(Yes) | Some(No) ->
+        Some(Yes) ->
           grade_cells
           |> list.map(fn(cell) {
             html.div(
               [
                 attribute.class(
                   "p-2 border border-gray-200 h-10 w-full " <> cell,
+                ),
+              ],
+              [],
+            )
+          })
+        Some(No) ->
+          grade_cells
+          |> list.map(fn(cell) {
+            html.div(
+              [
+                attribute.class(
+                  "p-2 border border-gray-200 h-10 w-full bg-white",
                 ),
               ],
               [],
@@ -178,10 +159,7 @@ pub fn grid(model: Model) -> element.Element(Msg) {
               attribute.class(
                 "bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded",
               ),
-              event.on_click(case question.is_terminal {
-                True -> ToggleTerminalVisibility(question.id)
-                False -> ToggleVisibility(question.id, ans: state.Yes)
-              }),
+              event.on_click(ToggleVisibility(question.id, ans: state.Yes)),
             ],
             [element.text("Ja")],
           ),
