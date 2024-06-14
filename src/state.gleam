@@ -33,7 +33,7 @@ pub fn get_questions() {
     Question(
       1,
       "Är reservdelen dyr?",
-      Strategy(Green, Red, Yellow),
+      Strategy(Red, Green, Yellow),
       is_terminal: False,
       visible: True,
       answer: None,
@@ -44,7 +44,7 @@ pub fn get_questions() {
       Strategy(
         hold_in_stock: Yellow,
         buy_on_demand: Yellow,
-        supplier_contract: Red,
+        supplier_contract: Green,
       ),
       is_terminal: False,
       visible: False,
@@ -52,6 +52,18 @@ pub fn get_questions() {
     ),
     Question(
       3,
+      "Finns behov av extern kompetens?",
+      Strategy(
+        hold_in_stock: Yellow,
+        buy_on_demand: Red,
+        supplier_contract: Green,
+      ),
+      is_terminal: False,
+      visible: False,
+      answer: None,
+    ),
+    Question(
+      4,
       "Är tillåten stilleståndstid kortare än leveranstider?",
       Strategy(Green, Gray, Gray),
       is_terminal: True,

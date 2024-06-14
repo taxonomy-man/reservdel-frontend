@@ -985,7 +985,7 @@ function get_questions() {
     new Question(
       1,
       "\xC4r reservdelen dyr?",
-      new Strategy(new Green(), new Red(), new Yellow()),
+      new Strategy(new Red(), new Green(), new Yellow()),
       false,
       true,
       new None()
@@ -993,13 +993,21 @@ function get_questions() {
     new Question(
       2,
       "Har reservdelen h\xF6g oms\xE4ttning?",
-      new Strategy(new Yellow(), new Yellow(), new Red()),
+      new Strategy(new Yellow(), new Yellow(), new Green()),
       false,
       false,
       new None()
     ),
     new Question(
       3,
+      "Finns behov av extern kompetens?",
+      new Strategy(new Yellow(), new Red(), new Green()),
+      false,
+      false,
+      new None()
+    ),
+    new Question(
+      4,
       "\xC4r till\xE5ten stillest\xE5ndstid kortare \xE4n leveranstider?",
       new Strategy(new Green(), new Gray(), new Gray()),
       true,
