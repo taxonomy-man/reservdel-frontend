@@ -110,9 +110,16 @@ pub fn grid(model: Model) -> element.Element(Msg) {
     |> list.filter(fn(question) { question.visible })
     |> list.map(fn(question) {
       // If a terminal question has Yes and this is not the terminal question, show gray cells
-
-      let grade_cells = case terminal_yes_answered && !question.is_terminal {
-        True -> ["bg-gray-300"]
+      let grade_cells = case terminal_yes_answered {
+        True ->
+          case question.is_terminal {
+            True -> [
+              grade_to_color_class(question.strategy.hold_in_stock),
+              grade_to_color_class(question.strategy.buy_on_demand),
+              grade_to_color_class(question.strategy.supplier_contract),
+            ]
+            False -> ["bg-gray-300", "bg-gray-300", "bg-gray-300"]
+          }
         False -> [
           grade_to_color_class(question.strategy.hold_in_stock),
           grade_to_color_class(question.strategy.buy_on_demand),
@@ -133,6 +140,19 @@ pub fn grid(model: Model) -> element.Element(Msg) {
               [],
             )
           })
+        Some(No) if terminal_yes_answered ->
+          grade_cells
+          |> list.map(fn(cell) {
+            html.div(
+              [
+                attribute.class(
+                  "p-2 border border-gray-200 h-10 w-full bg-gray-300",
+                ),
+              ],
+              [],
+            )
+          })
+
         Some(No) ->
           grade_cells
           |> list.map(fn(cell) {
@@ -148,32 +168,83 @@ pub fn grid(model: Model) -> element.Element(Msg) {
         None -> []
       }
 
-      let question_row =
-        html.div([attribute.class("flex items-center space-x-4 mx-auto")], [
-          html.div([attribute.class("p-2 border border-gray-200 mr-2")], [
-            element.text(question.text),
-          ]),
-          html.button(
-            [
-              attribute.name("visibility"),
-              attribute.class(
-                "bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded",
-              ),
-              event.on_click(ToggleVisibility(question.id, ans: state.Yes)),
-            ],
-            [element.text("Ja")],
-          ),
-          html.button(
-            [
-              attribute.name("visibility"),
-              attribute.class(
-                "bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-1 rounded",
-              ),
-              event.on_click(ToggleVisibility(question.id, ans: state.No)),
-            ],
-            [element.text("Nej")],
-          ),
-        ])
+      let question_row = case terminal_yes_answered {
+        True ->
+          case question.is_terminal {
+            True ->
+              html.div(
+                [attribute.class("flex items-center space-x-4 mx-auto")],
+                [
+                  html.div(
+                    [attribute.class("p-2 border border-gray-200 mr-2")],
+                    [element.text(question.text)],
+                  ),
+                  html.button(
+                    [
+                      attribute.name("visibility"),
+                      attribute.class(
+                        "bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded",
+                      ),
+                      event.on_click(ToggleVisibility(
+                        question.id,
+                        ans: state.Yes,
+                      )),
+                    ],
+                    [element.text("Ja")],
+                  ),
+                  html.button(
+                    [
+                      attribute.name("visibility"),
+                      attribute.class(
+                        "bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-1 rounded",
+                      ),
+                      event.on_click(ToggleVisibility(
+                        question.id,
+                        ans: state.No,
+                      )),
+                    ],
+                    [element.text("Nej")],
+                  ),
+                ],
+              )
+            False ->
+              html.div(
+                [attribute.class("flex items-center space-x-4 mx-auto")],
+                [
+                  html.div(
+                    [attribute.class("p-2 border border-gray-200 mr-2")],
+                    [element.text(question.text)],
+                  ),
+                ],
+              )
+          }
+        False ->
+          html.div([attribute.class("flex items-center space-x-4 mx-auto")], [
+            html.div([attribute.class("p-2 border border-gray-200 mr-2")], [
+              element.text(question.text),
+            ]),
+            html.button(
+              [
+                attribute.name("visibility"),
+                attribute.class(
+                  "bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded",
+                ),
+                event.on_click(ToggleVisibility(question.id, ans: state.Yes)),
+              ],
+              [element.text("Ja")],
+            ),
+            html.button(
+              [
+                attribute.name("visibility"),
+                attribute.class(
+                  "bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-1 rounded",
+                ),
+                event.on_click(ToggleVisibility(question.id, ans: state.No)),
+              ],
+              [element.text("Nej")],
+            ),
+          ])
+      }
 
       html.div([attribute.class("space-y-2 mx-auto")], [
         question_row,
@@ -209,7 +280,7 @@ fn grade_to_color_class(grade: Grade) -> String {
     state.Yellow -> "bg-yellow-300"
     state.Green -> "bg-green-500"
     state.White -> "bg-white"
-    state.Gray -> "bg-gray-200"
+    state.Gray -> "bg-gray-300"
   }
 }
 
