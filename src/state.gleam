@@ -53,7 +53,7 @@ pub fn get_questions() {
     Question(
       3,
       "Är tillåten stilleståndstid kortare än leveranstider?",
-      Strategy(Green, Red, Red),
+      Strategy(Green, Gray, Gray),
       is_terminal: True,
       visible: False,
       answer: None,

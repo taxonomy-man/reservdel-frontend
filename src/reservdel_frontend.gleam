@@ -68,20 +68,46 @@ fn init(_flags) -> Model {
 
 pub type Msg {
   ToggleVisibility(q_nr: Int, ans: Answer)
+  ToggleTerminalVisibility(q_nr: Int)
   Reset
 }
 
 pub fn update(model: Model, msg: Msg) -> Model {
   case msg {
     ToggleVisibility(q_nr, ans) -> toggle_visibility(model, q_nr, ans)
+    ToggleTerminalVisibility(q_nr) -> handle_terminal_question(model, q_nr)
     Reset -> init(Nil)
   }
 }
 
-pub fn terminal_question_been_answered_yes(questions: List(Question)) -> Bool {
-  questions
-  |> list.any(fn(question) {
-    question.is_terminal && question.answer == Some(Yes)
+pub fn handle_terminal_question(
+  model: List(Question),
+  q_nr: Int,
+) -> List(Question) {
+  let updated_model =
+    model
+    |> list.map(fn(question) {
+      case question.id == q_nr {
+        True -> state.Question(..question, visible: True, answer: Some(Yes))
+        _ -> question
+      }
+    })
+
+  updated_model
+  |> list.map(fn(question) {
+    case question.id == q_nr {
+      True -> question
+      False ->
+        state.Question(
+          ..question,
+          visible: True,
+          strategy: Strategy(
+            hold_in_stock: state.Gray,
+            buy_on_demand: state.Gray,
+            supplier_contract: state.Gray,
+          ),
+        )
+    }
   })
 }
 
@@ -90,41 +116,26 @@ pub fn toggle_visibility(
   q_nr: Int,
   ans: Answer,
 ) -> List(Question) {
-  let next_id = q_nr + 1
-  let terminal = terminal_question_been_answered_yes(model)
-
   model
   |> list.map(fn(question) {
+    let next_id = question.id + 1
     case question.id == q_nr {
-      True if ans == Yes ->
-        state.Question(..question, visible: True, answer: Some(Yes))
-
-      True if ans == No ->
-        state.Question(
-          ..question,
-          visible: True,
-          answer: Some(No),
-          strategy: Strategy(
-            hold_in_stock: state.White,
-            buy_on_demand: state.White,
-            supplier_contract: state.White,
-          ),
-        )
-
-      False if question.id == next_id ->
-        state.Question(..question, visible: True)
-
-      False if terminal == True ->
-        state.Question(
-          ..question,
-          strategy: Strategy(
-            hold_in_stock: state.Red,
-            buy_on_demand: state.Red,
-            supplier_contract: state.Red,
-          ),
-        )
-
-      _ -> question
+      True ->
+        case ans {
+          Yes -> state.Question(..question, visible: True, answer: Some(Yes))
+          No ->
+            state.Question(
+              ..question,
+              visible: True,
+              answer: Some(No),
+              strategy: Strategy(
+                hold_in_stock: state.White,
+                buy_on_demand: state.White,
+                supplier_contract: state.White,
+              ),
+            )
+        }
+      False -> state.Question(..question, visible: True, id: next_id)
     }
   })
 }
@@ -140,7 +151,6 @@ pub fn grid(model: Model) -> element.Element(Msg) {
         grade_to_color_class(question.strategy.supplier_contract),
       ]
 
-      // Always show the strategy row if the question is answered, regardless of the answer being yes or no
       let strategy_row = case question.answer {
         Some(Yes) | Some(No) ->
           grade_cells
@@ -168,7 +178,10 @@ pub fn grid(model: Model) -> element.Element(Msg) {
               attribute.class(
                 "bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-1 rounded",
               ),
-              event.on_click(ToggleVisibility(question.id, ans: state.Yes)),
+              event.on_click(case question.is_terminal {
+                True -> ToggleTerminalVisibility(question.id)
+                False -> ToggleVisibility(question.id, ans: state.Yes)
+              }),
             ],
             [element.text("Ja")],
           ),
@@ -205,9 +218,7 @@ pub fn grid(model: Model) -> element.Element(Msg) {
     list.all(model, fn(question) { question.visible && question.answer != None })
 
   let elements = case all_questions_answered {
-    True -> {
-      list.append(question_elements, [reset_button])
-    }
+    True -> list.append(question_elements, [reset_button])
     False -> question_elements
   }
 
